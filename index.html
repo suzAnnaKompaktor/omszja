@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <title>Osztrák-Magyar SZJA Kalkulátor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- MDB -->
+    <link
+    href="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/9.2.0/mdb.min.css"
+    rel="stylesheet"
+    />
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- html2canvas -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+    <style>
+        body {
+            --bs-font-sans-serif: 'Roboto', sans-serif;
+            --bs-body-font-family: var(--bs-font-sans-serif);
+        }
+        input::placeholder {
+            color: #aaa;
+        }
+
+        .accordion-item {
+            border: none;
+            border-radius: var(--mdb-border-radius-lg);
+            margin-bottom: 0.75rem;
+            box-shadow: var(--mdb-box-shadow-sm);
+            transition: box-shadow 0.3s ease, transform 0.2s ease;
+        }
+
+        .accordion-item:hover {
+            box-shadow: var(--mdb-box-shadow);
+            transform: translateY(-2px);
+        }
+
+        .accordion-button {
+            background-color: var(--mdb-surface-bg);
+            color: var(--mdb-body-color);
+            font-weight: 600;
+            border: none;
+            padding: 1rem 1.25rem;
+            transition: all 0.3s ease;
+            border-radius: var(--mdb-border-radius-lg);
+        }
+
+        .accordion-button:hover {
+            background-color: var(--mdb-surface-hover-bg);
+        }
+
+        .accordion-button:not(.collapsed) {
+            background-color: var(--mdb-primary-bg-subtle);
+            color: var(--mdb-primary-text-emphasis);
+            box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+        }
+
+        .accordion-button i {
+            font-size: 1.2rem;
+            margin-right: 0.6rem;
+            color: var(--mdb-primary);
+            transition: transform 0.3s ease, color 0.3s ease;
+        }
+
+        .accordion-button:not(.collapsed) i {
+            transform: rotate(20deg);
+            color: var(--mdb-primary-dark);
+        }
+
+        .accordion-body {
+            background-color: var(--mdb-surface-bg);
+            border-top: 1px solid var(--mdb-border-color);
+        }
+        /*.accordion-button {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }*/
+
+        .table>:not(caption)>*>*{
+            padding: 0.7rem 1rem;
+        }
+
+        .link-list .list-inline-item:not(:last-child)::after {
+            content: "|";
+            margin: 0 0.1rem;
+        }
+
+        .list-inline-item:not(:last-child) {
+            margin-right: 0.1rem;
+        }
+
+    </style>
+</head>
+<body class="bg-light py-5">
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-xl-8">
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h1 class="card-title h2 text-center mb-4">
+                    🇦🇹-🇭🇺 Osztrák–Magyar SZJA Kalkulátor
+                    </h1>
+                    <p>Mi történne, ha bevezetnénk egy ördögi progresszív személyi jövedelemadó rendszert, félelmetes 48-50%-os adókulcsokkal mondjuk az osztrák rendszer alapján? Nézd meg, mennyi SZJA-t fizetnél a béred után!</p>
+                    <p class="text-muted small">
+                        A kalkulátor a magyar minimálbért veszi alapul, a többi sáv az osztrák rendszer "tükörfordítása" és 1EUR = 400HUF árfolyammal számol.
+                        A kalkulátor nem számol se a magyar, se az osztrák kedvezményekkel, a két rendszer közötti különbség bemutatására szolgál.
+                    </p>
+
+                    <div id="calculateArea">
+
+                        <div class="mb-2">
+                            <label for="inputDisplay" class="form-label">Bruttó havi bér</label>
+                            <input type="text" class="form-control" id="inputDisplay" placeholder="pl. 708 300" inputmode="numeric">
+                        </div>
+                        <div class="mb-3 text-end">
+                            Lusta vagyok,
+                            <ul class="list-inline d-inline mb-0 link-list">
+                                <li class="list-inline-item">
+                                <a href="#" id="defaultHungarianAverageWage" class="text-decoration-none small text-primary">
+                                    számolj átlagbérrel
+                                </a>
+                                </li>
+                                <li class="list-inline-item">
+                                <a href="#" id="defaultHungarianMedianWage" class="text-decoration-none small text-primary">
+                                    számolj medián átlaggal
+                                </a>
+                                </li>
+                                <li class="list-inline-item">
+                                <a href="#" id="defaultOVSalary" class="text-decoration-none small text-primary">
+                                    számolj Orbán Viktor fizetésével
+                                </a>
+                                </li>
+                            </ul>
+                            !
+                        </div>
+
+                        <div class="d-grid mb-2">
+                            <button id="btnCalculate" class="btn btn-primary btn-lg">Számolás</button>
+                        </div>
+
+                    </div>
+
+                    <div class="capture-area" id="captureArea">
+                        <hr class="my-4">
+
+                        <h2 class="h5 text-muted">Eredmények</h2>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card border-0 shadow-sm mb-2">
+                                    <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
+                                        <h6 class="card-title text-muted">Jelenlegi SZJA (15%)</h6>
+                                        <span id="flatRateResult" class="fw-semibold">—</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card border-0 shadow-sm mb-2">
+                                    <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
+                                        <h6 class="card-title text-muted">Progresszív SZJA</h6>
+                                        <span id="tieredResult" class="fw-semibold">—</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <div class="card border-0 shadow-sm mb-2 bg-light">
+                            <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
+                                <span class="fw-medium small">Különbség</span>
+                                <span id="differenceResult" class="fw-bold text-primary">—</span>
+                            </div>
+                        </div>
+
+                        <p class="text-muted small mt-2 mb-4">
+                            A progresszív SZJA a fizetésed <span id="tieredPercentageResult" class="fw-semibold text-dark">—</span>-át teszi ki.
+                        </p>
+
+                        <h2 class="h5 text-muted">Részletes sávos lebontás</h2>
+                        <div class="table-responsive">
+                            <table class="table table-striped table-bordered" id="breakdownTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Sáv</th>
+                                        <th>Kulcs</th>
+                                        <th>Sávba eső összeg (Ft)</th>
+                                        <th>Fizetendő (Ft)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Dynamic content -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Diagram -->
+                        <div class="mb-4">
+                            <canvas id="breakdownChart" height="65"></canvas>
+                        </div>
+
+                    </div>
+                    <!-- EOF Capture Area -->
+
+                    <div class="row mb-2">
+                        <div class="col-md-6">
+                            <button id="btnShare" class="btn btn-block btn-secondary" disabled>Megosztás <i class="bi bi-share-fill"></i></button>
+                        </div>
+                        <div class="col-md-6">
+                            <button id="btnCalculateArea" class="btn btn-block btn-secondary">Új számolás <i class="bi bi-arrow-up-circle"></i></button>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <h2 class="h5 text-muted">GYIK</h2>
+                    <div class="accordion" id="accordionExample">
+
+                        <!-- 1. elem -->
+                        <div class="accordion-item">
+                            <h3 class="accordion-header" id="headingOne">
+                                <button class="accordion-button fw-bold text-muted" type="button" data-bs-toggle="collapse"
+                                        data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                                    <i class="bi bi-question-circle-fill text-primary pe-2"></i> Hogy néznek ki az eredeti osztrák sávok?
+                                </button>
+                            </h3>
+                            <div id="collapseOne" class="accordion-collapse collapse show"
+                                aria-labelledby="headingOne" data-bs-parent="#accordionExample">
+                                <div class="accordion-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-bordered" id="originalBrackets">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Sáv (éves) (€)</th>
+                                                    <th>Sáv (havi) (€)</th>
+                                                    <th>Sáv (havi) (Ft)</th>
+                                                    <th>Kulcs</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <!-- Dynamic content -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <p class="text-muted small">
+                                        Létezik egy további ideiglenes (2016 - 2025) 55%-os adókulcs 1millió euró fellett, amivel a kalkulátor nem számol.
+                                    </p>
+                                    <p class="text-end">
+                                        <a href="https://www.wko.at/en/current-values" target="_blank" class="btn btn-primary btn-sm">Részletes adatok  <i class="bi bi-box-arrow-up-right ps-1"></i></a>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 2. elem -->
+                        <div class="accordion-item">
+                            <h3 class="accordion-header" id="headingTwo">
+                                <button class="accordion-button collapsed fw-bold text-muted" type="button" data-bs-toggle="collapse"
+                                        data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                                <i class="bi bi-question-circle-fill text-primary pe-2"></i>  Mennyi az osztrák átlagbér és annak hány százaléka az SZJA?
+                                </button>
+                            </h3>
+                            <div id="collapseTwo" class="accordion-collapse collapse"
+                                aria-labelledby="headingTwo" data-bs-parent="#accordionExample">
+                                <div class="accordion-body">
+                                    <p>
+                                        Az osztrák átlagbér <strong>€<span id="austrianAverage"></span>/hó</strong> (<span id="austrianAverageHuf"></span>Ft)<sup>*</sup>, ami után <span id="austrianAverageTaxVal"></span> eurót kell fizetni, ami <strong><span id="austrianAverageTaxPer"></span>%</strong>-ot jelent.
+                                    </p>
+                                    <p class="text-muted small">
+                                        <sup>*</sup> Medián átlagkereset a teljes munkaidőben alkalmazásban állók esetében a Statistics Austria 2023-as adata alapján
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                    <!-- EOF accordion -->
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap modal -->
+  <div class="modal fade" id="shareModal" tabindex="-1" aria-labelledby="shareModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="shareModalLabel">Megosztási lehetőségek</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Bezárás"></button>
+        </div>
+        <div class="modal-body" id="shareArea">
+          <!-- Image + share links -->
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bezárás</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<!-- Bootstrap JS (Popper + Bootstrap) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+
+    const formatter = new Intl.NumberFormat('hu-HU');
+    const formatterDE = new Intl.NumberFormat('de-DE');
+
+    // Base data
+    const eurToHuf = 400;
+    const austrianBrackets = [
+        { min: 0, max: 13308, rate: 0 },
+        { min: 13308, max: 21617, rate: 0.10 },
+        { min: 21617, max: 35836, rate: 0.20 },
+        { min: 35836, max: 69166, rate: 0.30 },
+        { min: 69166, max: 103072, rate: 0.48 },
+        { min: 103072, max: Infinity, rate: 0.50 }
+    ];
+    const holyFlatRate = 0.15;
+    const hungarianMinimalWage = 290800;
+    const hungarianAverageWage = 708300;
+    const hungarianMedianWage = 564800;
+    const OVSalary = 7140000;
+    const austrianAverageWage = 3995;
+    const brackets = translateBrackets();
+
+    // FAQ
+    displayFAQOriginal();
+    displayFAQAVG();
+
+    //Defaults
+    document.getElementById("defaultHungarianAverageWage").addEventListener("click", (event) => {
+        event.preventDefault();
+        useDefault(hungarianAverageWage);
+    });
+    document.getElementById("defaultHungarianMedianWage").addEventListener("click", (event) => {
+        event.preventDefault();
+        useDefault(hungarianMedianWage);
+    });
+    document.getElementById("defaultOVSalary").addEventListener("click", (event) => {
+        event.preventDefault();
+        useDefault(OVSalary);
+    });
+
+    // Input field formatting
+    const inputDisplay = document.getElementById('inputDisplay');
+    let rawValue = 0;
+
+    inputDisplay.addEventListener('input', () => {
+        const digits = inputDisplay.value.replace(/\D/g, '');
+        rawValue = parseInt(digits) || 0;
+        inputDisplay.value = formatter.format(rawValue);
+    });
+
+    //Calculate
+    document.getElementById("btnCalculate").addEventListener("click", () => {
+        calculate();
+    });
+
+    // Jump
+    const calculateArea = document.getElementById("calculateArea");
+    document.getElementById("btnCalculateArea").addEventListener("click", () => {
+        calculateArea.scrollIntoView({ behavior: "smooth", block: "start"});
+    });
+
+    window.addEventListener("calculated", () => {
+        const target = document.getElementById("captureArea");
+        target.scrollIntoView({ behavior: "smooth", block: "start"});
+        //document.getElementById("btnShare").disabled = false;
+    });
+
+    function calculate() {
+
+        const flatRateOutput = document.getElementById('flatRateResult');
+        const tieredOutput = document.getElementById('tieredResult');
+        const differenceResultOutput = document.getElementById('differenceResult');
+        const tieredPercentageResultOutput = document.getElementById('tieredPercentageResult');
+        const breakdownBody = document.querySelector("#breakdownTable tbody");
+
+        breakdownBody.innerHTML = ""; // Delete
+
+        if (isNaN(rawValue) || rawValue <= 0) {
+            flatRateOutput.innerText =
+            tieredOutput.innerText =
+            differenceResultOutput.innerHTML =
+            tieredPercentageResultOutput.innerText = '--';
+            renderChart();
+            return;
+        }
+
+        // Flat rate
+        const flatRateValue = rawValue * holyFlatRate;
+        flatRateOutput.innerText = formatter.format(flatRateValue);
+
+        // Progressive
+        let total = 0;
+
+        // Diagram
+        const chartData = [];
+
+        for (const bracket of brackets) {
+            const upperLimit = Math.min(rawValue, bracket.max);
+            const taxable = rawValue > bracket.min ? upperLimit - bracket.min : 0;
+            const tax = taxable * bracket.rate;
+            total += tax;
+
+            // Create row (mindig)
+            const row = document.createElement('tr');
+            const rangeLabel = bracket.max === Infinity
+                ? `${formatter.format(bracket.min)}+`
+                : `${formatter.format(bracket.min)} - ${formatter.format(bracket.max)}`;
+
+            row.innerHTML = `
+                <td>${rangeLabel}</td>
+                <td class="text-end">${(bracket.rate * 100).toFixed(0)}%</td>
+                <td class="text-end">${taxable > 0 ? formatter.format(taxable) : '—'}</td>
+                <td class="text-end">${tax > 0 ? formatter.format(tax) : '—'}</td>
+            `;
+
+            // Empty rows
+            if (taxable === 0) {
+                row.classList.add('text-muted');
+                row.style.opacity = 0.5;
+            }
+
+            breakdownBody.appendChild(row);
+
+            // Add to diagram
+            chartData.push({
+                label: rangeLabel,
+                tax
+            });
+        }
+
+
+        tieredOutput.innerText = formatter.format(total);
+
+        // Diff
+        const difference = flatRateValue - total;
+        differenceResultOutput.innerText = formatter.format(difference);
+        if (difference > 0) {
+            differenceResultOutput.classList.add('text-success');
+            differenceResultOutput.classList.remove('text-danger');
+        } else if (difference < 0) {
+            differenceResultOutput.classList.add('text-danger');
+            differenceResultOutput.classList.remove('text-success');
+        } else {
+            differenceResultOutput.classList.remove('text-success', 'text-danger');
+        }
+
+        // Percentage of progressive
+        const percentage = getPercentage(total, rawValue);
+        tieredPercentageResultOutput.innerText = Number(percentage/100).toLocaleString(undefined,{style: 'percent', minimumFractionDigits:0});
+
+
+         // Render diagrem
+        renderChart(chartData);
+
+        // Trigger calculated event
+        var event = new CustomEvent('calculated');
+        window.dispatchEvent(event);
+    }
+
+    let breakdownChart = null;
+
+    function renderChart(data) {
+        const ctx = document.getElementById('breakdownChart');
+
+        // biztonságos destroy (ha van korábbi chart)
+        if (breakdownChart) {
+            breakdownChart.destroy();
+            breakdownChart = null;
+        }
+
+        // ha nincs adat (pl. érvénytelen input), csak töröljük a vásznat és visszatérünk
+        if (!data || !Array.isArray(data) || data.length === 0) {
+            // opcionálisan: clear canvas
+            const clearCtx = ctx.getContext('2d');
+            clearCtx.clearRect(0, 0, ctx.width, ctx.height);
+            return;
+        }
+
+        // MDB colors from CSS variables
+        const style = getComputedStyle(document.body);
+        const colors = [
+            style.getPropertyValue('--mdb-secondary')?.trim() || '#B23CFD',
+            style.getPropertyValue('--mdb-info')?.trim() || '#39C0ED',
+            style.getPropertyValue('--mdb-primary')?.trim() || '#1266F1',
+            style.getPropertyValue('--mdb-success')?.trim() || '#00B74A',
+            style.getPropertyValue('--mdb-warning')?.trim() || '#FFA900',
+            style.getPropertyValue('--mdb-danger')?.trim() || '#F93154'
+        ];
+
+        // background plugin
+        const backgroundPlugin = {
+            id: 'customCanvasBackgroundColor',
+            beforeDraw: (chart, args, options) => {
+                const { ctx, chartArea } = chart;
+                if (!chartArea) return;
+                ctx.save();
+                ctx.fillStyle = options.color || '#f8f9fa';
+                ctx.fillRect(chartArea.left - 1, chartArea.top - 1, chartArea.width + 2, chartArea.height + 2);
+                ctx.restore();
+            }
+        };
+
+        breakdownChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: [''],
+                datasets: data.map((d, i) => ({
+                    label: d.label,
+                    data: [d.tax],
+                    backgroundColor: colors[i % colors.length],
+                    borderWidth: 1,
+                    barThickness: 36
+                }))
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                layout: { padding: 0 },
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { boxWidth: 16, color: '#333' }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => `${formatter.format(ctx.raw)} Ft`
+                        }
+                    },
+                    customCanvasBackgroundColor: { color: '#f8f9fa' }
+                },
+                scales: {
+                    x: {
+                        stacked: true,
+                        min: 0,
+                        max: rawValue || 0,
+                        ticks: {
+                            callback: val => formatter.format(val),
+                            padding: 0
+                        },
+                        title: {
+                            display: true,
+                            text: 'Bruttó bér (Ft)',
+                            font: { size: 12, weight: 'bold' }
+                        },
+                        grid: { color: '#eee' }
+                    },
+                    y: {
+                        stacked: true,
+                        grid: { display: false },
+                        ticks: { padding: 6 }
+                    }
+                }
+            },
+            plugins: [backgroundPlugin]
+        });
+    }
+
+
+
+    function useDefault(val) {
+        rawValue = val;
+        document.getElementById('inputDisplay').value = formatter.format(val);
+        calculate();
+    }
+
+    function displayFAQOriginal() {
+        const originalBracketsOutput = document.querySelector("#originalBrackets tbody");
+        for (const bracket of austrianBrackets) {
+            // Create row
+            const row = document.createElement('tr');
+
+            const rangeLabel = bracket.max === Infinity
+                    ? `${formatterDE.format(bracket.min)}+`
+                    : `${formatterDE.format(bracket.min)} - ${formatterDE.format(bracket.max)}`;
+            const rangeLabelMonth = bracket.max === Infinity
+                    ? `${formatterDE.format(valuePerMonth(bracket.min))}+`
+                    : `${formatterDE.format(valuePerMonth(bracket.min))} - ${formatterDE.format(valuePerMonth(bracket.max))}`;
+            const rangeLabelHUF = bracket.max === Infinity
+                    ? `${formatter.format(translateValue(bracket.min))}+`
+                    : `${formatter.format(translateValue(bracket.min))} - ${formatter.format(translateValue(bracket.max))}`;
+
+            row.innerHTML = `
+                    <td>${rangeLabel}</td>
+                    <td>${rangeLabelMonth}</td>
+                    <td>${rangeLabelHUF}</td>
+                    <td>${(bracket.rate * 100).toFixed(0)}%</td>
+                `;
+            originalBracketsOutput.appendChild(row);
+        }
+    }
+
+    function displayFAQAVG() {
+        document.getElementById('austrianAverage').innerText = formatterDE.format(austrianAverageWage);
+        document.getElementById('austrianAverageHuf').innerText = formatter.format(valueToHUF(austrianAverageWage));
+        const avTaxVal = Math.round(calculateAT(austrianAverageWage));
+        document.getElementById('austrianAverageTaxVal').innerText = formatterDE.format(avTaxVal);
+        const avTaxPer = getPercentage(avTaxVal, austrianAverageWage);
+        document.getElementById('austrianAverageTaxPer').innerText = formatterDE.format(Math.round(avTaxPer));
+    }
+
+    function translateBrackets() {
+        let translated = [];
+        for (let i = 0; i < austrianBrackets.length; i++) {
+            const min = austrianBrackets[i].min;
+            const max = austrianBrackets[i].max;
+            const rate = austrianBrackets[i].rate;
+            const item = {
+                'min': min,
+                'max': max,
+                'rate': rate
+            };
+            if (i == 0) {
+                item.max = hungarianMinimalWage;
+            }
+            else if (i == 1) {
+                item.min = hungarianMinimalWage;
+                item.max = translateValue(max);
+            }
+            else {
+                item.min = translateValue(min);
+                item.max = translateValue(max);
+            }
+            translated.push(item);
+        }
+        return translated;
+    }
+
+    function calculateAT(val) {
+        let total = 0;
+        for (const bracket of austrianBrackets) {
+            const min = bracket.min > 0 ? (bracket.min / 12) : 0;
+            const max = bracket.max !=  Infinity ? (bracket.max / 12) : Infinity;
+            if (val > min) {
+                const upperLimit = Math.min(val, max);
+                const taxable = upperLimit - min;
+                const tax = taxable * bracket.rate;
+                total += tax;
+            }
+        }
+        return total;
+    }
+
+    function valueToHUF(value) {
+        return Math.round(value * eurToHuf);
+    }
+
+    function valuePerMonth(value) {
+        return Math.round(value/12);
+    }
+
+    function translateValue(value) {
+        return roundTo(valuePerMonth(valueToHUF(value)), -2);
+    }
+
+    // PHP like rounding
+    function roundTo(value, precision = 0) {
+        const factor = Math.pow(10, -precision);
+        return Math.round(value / factor) * factor;
+    }
+
+    // Count percentage of 2 values
+    function getPercentage(part, whole) {
+        if (whole === 0) return 0;
+        return (part / whole) * 100;
+    }
+
+    // Share
+    const captureBtn = document.getElementById("btnShare");
+    const shareArea = document.getElementById("shareArea");
+    const appendLink = window.location.href;
+    const shareText = "Megnézem én is!";
+    const shareModal = new bootstrap.Modal(document.getElementById("shareModal"));
+
+    captureBtn.addEventListener("click", async () => {
+      const target = document.getElementById("captureArea");
+
+      const clone = target.cloneNode(true);
+
+      const container = document.createElement("div");
+      container.style.position = "fixed";
+      container.style.left = "-9999px";
+      container.appendChild(clone);
+      document.body.appendChild(container);
+
+      const canvas = await html2canvas(clone, { scale: window.devicePixelRatio || 2 });
+      document.body.removeChild(container);
+
+      const blob = await new Promise(res => canvas.toBlob(res, "image/png"));
+      const url = URL.createObjectURL(blob);
+
+      // Ha támogatja a böngésző: Web Share API fájllal
+      const filesArray = [new File([blob], "capture.png", { type: "image/png" })];
+      if (navigator.canShare && navigator.canShare({ files: filesArray })) {
+        try {
+          await navigator.share({ files: filesArray, text: shareText });
+          return;
+        } catch (err) {
+          console.warn("Megosztás megszakítva vagy hiba:", err);
+        }
+      }
+
+      /// Fallback: modal tartalom
+      shareArea.innerHTML = `
+        <div class="mb-3">
+          <strong>Előnézet:</strong><br>
+          <img src="${url}" alt="capture" class="img-fluid border rounded mt-2">
+        </div>
+        <a href="${url}" download="capture.png" class="btn btn-outline-primary me-2">Letöltés</a>
+        <div class="d-flex flex-wrap gap-2 mt-3">
+          <a class="btn btn-outline-secondary" target="_blank" href="https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText + ' ' + appendLink)}">Twitter</a>
+          <a class="btn btn-outline-secondary" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(appendLink)}">Facebook</a>
+        </div>
+      `;
+
+      shareModal.show();
+    });
+
+
+</script>
+
+</body>
+</html>
